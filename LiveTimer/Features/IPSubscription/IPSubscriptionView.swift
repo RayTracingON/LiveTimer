@@ -37,7 +37,7 @@ struct IPSubscriptionView: View {
         NavigationStack {
             List {
                 if !subscribed.isEmpty {
-                    Section("已订阅") {
+                    Section {
                         ForEach(subscribed) { ip in
                             HStack(spacing: 12) {
                                 cover(ip.coverUrl)
@@ -48,8 +48,17 @@ struct IPSubscriptionView: View {
                                 Spacer()
                                 if store.progress?.subjectId == ip.bangumiSubjectId { ProgressView() }
                             }
-                            .swipeActions { Button("移除", role: .destructive) { removing = ip } }
+                            .swipeActions {
+                                Button("移除", role: .destructive) { removing = ip }
+                                Button("刷新") { Task { await store.refresh(ip, context: context) } }
+                                    .tint(Theme.C.kind(.pilgrimage))
+                            }
                         }
+                    } header: {
+                        Text("已订阅")
+                    } footer: {
+                        Text("地标不会自动更新。需要最新数据时左滑该作品「刷新」。")
+                            .font(Theme.F.tag)
                     }
                 }
                 if !query.isEmpty {
@@ -108,7 +117,8 @@ struct IPSubscriptionView: View {
                 ToolbarItem(placement: .topBarTrailing) { Button("完成") { dismiss() } }
             }
             .task { await loadCatalog() }
-            .refreshable { await loadCatalog(); await store.refreshIfStale(context: context, force: true) }
+            // 下拉只刷作品清单（自家后端的轻量元数据），不碰 anitabi 的地标。
+            .refreshable { await loadCatalog() }
             .confirmationDialog("移除「\(removing?.titleCn ?? removing?.titleOriginal ?? "")」？", isPresented: .init(get: { removing != nil }, set: { if !$0 { removing = nil } }), titleVisibility: .visible) {
                 Button("移除，保留已加入日程的地标") { if let ip = removing { store.unsubscribe(ip, deleteScheduleItems: false, context: context) } }
                 Button("移除，并删除相关日程", role: .destructive) { if let ip = removing { store.unsubscribe(ip, deleteScheduleItems: true, context: context) } }

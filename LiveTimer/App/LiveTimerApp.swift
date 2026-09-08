@@ -27,7 +27,7 @@ struct LiveTimerApp: App {
                 .task {
                     await remoteConfig.refresh()
                     await sync.sync(context: container.mainContext)
-                    if remoteConfig.pilgrimageLayerEnabled { await pilgrimage.refreshIfStale(context: container.mainContext) }
+                    // 巡礼地标不在启动时拉：只有用户在「订阅作品」里主动添加或刷新某部作品才去打 anitabi。
                     #if DEBUG
                     // 截图 / 调试用：`-debugSeedSchedule YES` 把缓存里最早的一场演出加进日程，
                     // 再放一条和它重叠的假 Live（无 sourceRef，同步不会动它），用来看冲突描边。

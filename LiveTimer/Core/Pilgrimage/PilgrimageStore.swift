@@ -4,7 +4,9 @@ import Observation
 import CoreLocation
 
 /// IP 订阅与巡礼地标缓存。
-/// 刷新策略：先拉很轻的 /lite 比较 modified，变了才拉全量 detail（几百个点）。
+/// 拉取策略：只在用户主动操作时打 anitabi —— 搜到作品点「添加」订阅，或在列表里手动刷新某一部。
+/// App 启动、进地图都不会自动拉：一部作品动辄几百个点，没人要求就不该去打第三方接口。
+/// 刷新时也是先拉很轻的 /lite 比较 modified，变了才拉全量 detail。
 @MainActor
 @Observable
 final class PilgrimageStore {
@@ -19,7 +21,6 @@ final class PilgrimageStore {
     private(set) var lastFilterSummary: String?
 
     private let anitabi = AnitabiAPI.shared
-    static let refreshInterval: TimeInterval = 7 * 86400
     /// 只保留距离演出场馆这么近的地标。一部作品动辄几百个点，
     /// 全存下来地图会被跟这趟远征无关的点淹没。
     static let radiusMeters: CLLocationDistance = 100_000
@@ -28,6 +29,8 @@ final class PilgrimageStore {
     func subscribe(_ entry: LiveTimerAPI.IpCatalogEntry, context: ModelContext) async {
         let id = entry.bangumiSubjectId
         progress = Progress(subjectId: id, stage: "正在读取作品信息…")
+        lastError = nil
+        lastFilterSummary = nil
         defer { progress = nil }
         do {
             let lite = try await anitabi.lite(subjectId: id)
@@ -61,23 +64,17 @@ final class PilgrimageStore {
         try? context.save()
     }
 
-    /// 手动下拉刷新 / 每 7 天一次的后台检查。
-    func refreshIfStale(context: ModelContext, force: Bool = false) async {
-        let ips = (try? context.fetch(FetchDescriptor<SubscribedIP>())) ?? []
-        for ip in ips {
-            let stale = ip.pointsFetchedAt.map { Date().timeIntervalSince($0) > Self.refreshInterval } ?? true
-            guard force || stale else { continue }
-            do {
-                let lite = try await anitabi.lite(subjectId: ip.bangumiSubjectId)
-                if force || (lite.modified ?? 0) > (ip.anitabiModified ?? -1) {
-                    try await pullPoints(for: ip, lite: lite, force: force, context: context)
-                } else {
-                    ip.pointsFetchedAt = Date()
-                    try? context.save()
-                }
-            } catch {
-                lastError = error.localizedDescription
-            }
+    /// 手动刷新单部已订阅作品的地标。只有用户在列表里主动触发才会走到这里。
+    func refresh(_ ip: SubscribedIP, context: ModelContext) async {
+        progress = Progress(subjectId: ip.bangumiSubjectId, stage: "正在检查更新…")
+        lastError = nil
+        lastFilterSummary = nil
+        defer { progress = nil }
+        do {
+            let lite = try await anitabi.lite(subjectId: ip.bangumiSubjectId)
+            try await pullPoints(for: ip, lite: lite, force: true, context: context)
+        } catch {
+            lastError = error.localizedDescription
         }
     }
 
@@ -99,7 +96,7 @@ final class PilgrimageStore {
             guard isNearSchedule(latitude: geo[0], longitude: geo[1], anchors: anchors) else { continue }
             context.insert(CachedPilgrimagePoint(
                 id: p.id, subjectId: id, name: p.name ?? p.cn ?? p.id, nameCn: p.cn,
-                imageUrl: AnitabiAPI.imageBase(from: p.image), episode: p.ep, seconds: p.s,
+                imageUrl: AnitabiAPI.imageBase(from: p.image), episodeLabel: p.ep, seconds: p.s,
                 latitude: geo[0], longitude: geo[1], origin: p.origin, originURL: p.originURL))
             kept += 1
         }

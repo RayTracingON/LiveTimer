@@ -39,7 +39,8 @@ final class CachedPilgrimagePoint {
     var nameCn: String?
     /// 不含 plan 参数的 base，用时再拼 ?plan=h160 / h360。
     var imageUrl: String?
-    var episode: Int?
+    /// 集数原文（"3" / "OP" / "劇場版"）。anitabi 这个字段不保证是数字，所以按文本存。
+    var episodeLabel: String?
     var seconds: Int?
     var latitude: Double
     var longitude: Double
@@ -48,14 +49,14 @@ final class CachedPilgrimagePoint {
     /// 来源跳转，必填实现。
     var originURL: String?
 
-    init(id: String, subjectId: Int, name: String, nameCn: String?, imageUrl: String?, episode: Int?, seconds: Int?,
+    init(id: String, subjectId: Int, name: String, nameCn: String?, imageUrl: String?, episodeLabel: String?, seconds: Int?,
          latitude: Double, longitude: Double, origin: String?, originURL: String?) {
         self.id = id
         self.subjectId = subjectId
         self.name = name
         self.nameCn = nameCn
         self.imageUrl = imageUrl
-        self.episode = episode
+        self.episodeLabel = episodeLabel
         self.seconds = seconds
         self.latitude = latitude
         self.longitude = longitude
@@ -66,11 +67,12 @@ final class CachedPilgrimagePoint {
     var thumbnailURL: URL? { AnitabiAPI.thumbnail(imageUrl) }
     var largeImageURL: URL? { AnitabiAPI.large(imageUrl) }
 
-    /// 「第 3 話 12:34」。
+    /// 「第 3 話 12:34」。集数不是纯数字时（OP、劇場版）直接用原文。
     var episodeText: String? {
-        guard let episode else { return nil }
-        guard let seconds else { return "第 \(episode) 話" }
-        return String(format: "第 %d 話 %02d:%02d", episode, seconds / 60, seconds % 60)
+        guard let episodeLabel else { return nil }
+        let ep = Int(episodeLabel).map { "第 \($0) 話" } ?? episodeLabel
+        guard let seconds else { return ep }
+        return String(format: "%@ %02d:%02d", ep, seconds / 60, seconds % 60)
     }
 }
 
