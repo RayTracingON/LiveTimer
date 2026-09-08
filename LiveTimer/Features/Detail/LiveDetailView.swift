@@ -9,7 +9,7 @@ struct LiveDetailView: View {
 
     @Environment(\.modelContext) private var context
     @Environment(RemoteConfig.self) private var config
-    @State private var ticketURL: URL?
+    @State private var presentedURL: URL?
     @State private var scheduled: ScheduleItem?
 
     var body: some View {
@@ -21,13 +21,7 @@ struct LiveDetailView: View {
                 priceCard
                 if !live.lineup.isEmpty { lineupSection }
                 venueSection
-                if let summary = live.summary, !summary.isEmpty {
-                    VStack(alignment: .leading, spacing: 8) {
-                        SectionHeading("公演情報")
-                        Text(summary).font(Theme.F.body).foregroundStyle(Theme.C.textSecondary)
-                    }
-                    .padding(.horizontal, Theme.M.screenPadding)
-                }
+                summarySection
             }
             .padding(.bottom, 140)
         }
@@ -42,8 +36,43 @@ struct LiveDetailView: View {
             }
         }
         .safeAreaInset(edge: .bottom) { actionBar }
-        .sheet(item: $ticketURL) { url in SafariView(url: url).ignoresSafeArea() }
+        .sheet(item: $presentedURL) { url in SafariView(url: url).ignoresSafeArea() }
         .onAppear { scheduled = ScheduleStore.existingItem(forLive: live.id, in: context) }
+    }
+
+    /// 公演情報。外部同步来的演出会把来源页地址单独占一行，
+    /// 直接当正文显示就是一串裸链接，所以这里把链接行拆出来做成可点的入口。
+    @ViewBuilder
+    private var summarySection: some View {
+        let lines = (live.summary ?? "")
+            .split(separator: "\n", omittingEmptySubsequences: true)
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .filter { !$0.isEmpty }
+        let links = lines.compactMap { Self.webURL($0) }
+        let text = lines.filter { Self.webURL($0) == nil }.joined(separator: "\n")
+        if !lines.isEmpty {
+            VStack(alignment: .leading, spacing: 8) {
+                SectionHeading("公演情報")
+                if !text.isEmpty {
+                    Text(text).font(Theme.F.body).foregroundStyle(Theme.C.textSecondary)
+                }
+                ForEach(links, id: \.self) { url in
+                    Button { presentedURL = url } label: {
+                        Label(url.host() ?? "查看来源", systemImage: "safari")
+                            .font(Theme.F.body)
+                    }
+                    .tint(Theme.C.accent)
+                }
+            }
+            .padding(.horizontal, Theme.M.screenPadding)
+        }
+    }
+
+    /// 只认 http/https，避免把正文里带冒号的日文标题误判成链接。
+    private static func webURL(_ line: String) -> URL? {
+        guard let url = URL(string: line), let scheme = url.scheme?.lowercased(),
+              scheme == "http" || scheme == "https", url.host() != nil else { return nil }
+        return url
     }
 
     // MARK: - sections
@@ -219,7 +248,7 @@ struct LiveDetailView: View {
                 .buttonStyle(.plain)
 
                 if let url = live.ticketURL {
-                    Button { ticketURL = url } label: {
+                    Button { presentedURL = url } label: {
                         Label("購入", systemImage: "ticket.fill")
                             .font(Theme.F.cardTitle).foregroundStyle(Theme.C.textPrimary)
                             .padding(.horizontal, 18).padding(.vertical, 14)
