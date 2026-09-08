@@ -174,8 +174,27 @@ nonisolated struct LiveTimerAPI: Sendable {
                                  [.init(name: "q", value: keyword), .init(name: "limit", value: String(limit))]))
     }
 
-    func passData(liveId: String) async throws -> Data {
-        try await client.postData(url("/api/v1/passes"), body: ["liveId": liveId])
+    private struct IssuePassBody: Encodable, Sendable {
+        let liveId: String
+        let seat: PassSeatInput?
+    }
+
+    func passData(liveId: String, seat: PassSeatInput? = nil) async throws -> Data {
+        try await client.postData(url("/api/v1/passes"),
+                                  body: IssuePassBody(liveId: liveId, seat: seat))
+    }
+
+    private struct UpdateSeatBody: Encodable, Sendable {
+        let seat: PassSeatInput?
+    }
+
+    /// 改一张已签发卡片上的座位。鉴权用卡片自带的 authenticationToken，
+    /// 和 Wallet 的 web service 接口同一套；后端改完会推送，钱包里的卡就地刷新。
+    func updatePassSeat(serialNumber: String, authenticationToken: String,
+                        seat: PassSeatInput?) async throws {
+        try await client.send(url("/api/v1/passes/\(serialNumber)"), method: "PATCH",
+                              body: UpdateSeatBody(seat: seat),
+                              headers: ["Authorization": "ApplePass \(authenticationToken)"])
     }
 
     private func url(_ path: String, _ query: [URLQueryItem] = []) -> URL {

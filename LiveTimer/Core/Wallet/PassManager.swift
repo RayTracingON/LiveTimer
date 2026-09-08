@@ -29,6 +29,8 @@ final class PassManager {
 
     private(set) var state: State = .idle
     private(set) var isInWallet = false
+    /// 改座位期间置位，用来把填写页的保存按钮转圈。
+    private(set) var isUpdatingSeat = false
 
     private let api: LiveTimerAPI
     private let library = PKPassLibrary()
@@ -40,13 +42,47 @@ final class PassManager {
     /// 设备是否支持添加卡片。模拟器和部分地区的设备不支持，这时整个入口都不该出现。
     static var canAddPasses: Bool { PKAddPassesViewController.canAddPasses() }
 
-    /// 向后端要一张卡。失败不抛给调用方，转成可展示的状态。
-    func load(liveId: String) async {
+    /// 取这场演出的卡。已经加进钱包的直接复用钱包里那张，没有才向后端要一张新的。
+    ///
+    /// 不能每次进详情页都签发：后端每次签发都是一张新序列号的卡，那样既会在库里堆废记录，
+    /// 也会让已经加过卡的用户又看到「添加到钱包」，一路加出好几张重复的卡。
+    func load(liveId: String, seat: PassSeatInput?, context: ModelContext) async {
         guard Self.canAddPasses else { return }
         if case .ready = state { return }
         state = .loading
+
+        if let existing = existingPass(liveId: liveId, context: context) {
+            isInWallet = true
+            state = .ready(existing)
+            return
+        }
+        await issue(liveId: liveId, seat: seat)
+    }
+
+    /// 用户改了座位。已经加进钱包的卡就地更新（后端会推送刷新），还没加的重新签发一张带座位的。
+    func applySeat(_ seat: PassSeatInput?, liveId: String, context: ModelContext) async {
+        guard Self.canAddPasses else { return }
+        isUpdatingSeat = true
+        defer { isUpdatingSeat = false }
+
+        if isInWallet, case .ready(let pass) = state, let token = pass.authenticationToken {
+            do {
+                try await api.updatePassSeat(serialNumber: pass.serialNumber,
+                                             authenticationToken: token, seat: seat)
+            } catch let error as APIError {
+                state = .failed(error.localizedDescription)
+            } catch {
+                state = .failed("座位更新失败")
+            }
+            return
+        }
+        await issue(liveId: liveId, seat: seat)
+    }
+
+    private func issue(liveId: String, seat: PassSeatInput?) async {
+        state = .loading
         do {
-            let data = try await api.passData(liveId: liveId)
+            let data = try await api.passData(liveId: liveId, seat: seat?.isEmpty == true ? nil : seat)
             let pass = try PKPass(data: data)
             isInWallet = library.containsPass(pass)   // containsPass 不需要 entitlement
             state = .ready(pass)
@@ -56,6 +92,17 @@ final class PassManager {
             // PKPass(data:) 对未签名或损坏的包会抛错
             state = .failed("卡片数据无效")
         }
+    }
+
+    /// 本地记过序列号、且那张卡还在钱包里，就复用它。
+    /// 按序列号在 passes() 里找，而不是 pass(withPassTypeIdentifier:serialNumber:)——
+    /// 后者要把 Pass Type ID 再写一遍，和 entitlement 里的值对不上时会静默返回 nil。
+    private func existingPass(liveId: String, context: ModelContext) -> PKPass? {
+        let serials = Set((try? context.fetch(
+            FetchDescriptor<WalletPassRecord>(predicate: #Predicate { $0.liveId == liveId })))?
+            .map(\.serialNumber) ?? [])
+        guard !serials.isEmpty else { return nil }
+        return library.passes().first { serials.contains($0.serialNumber) }
     }
 
     /// AddPassToWalletButton 的回调只告诉「有没有加成功」，加成功后记一笔本地记录。

@@ -280,6 +280,7 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 0000000000000000000000D1 /* Secrets.xcconfig */;
 			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = Config/LiveTimer.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 66233X8P8H;
@@ -287,7 +288,6 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
-				CODE_SIGN_ENTITLEMENTS = Config/LiveTimer.entitlements;
 				INFOPLIST_FILE = Config/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = LiveTimer;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.lifestyle";
@@ -325,6 +325,7 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 0000000000000000000000D1 /* Secrets.xcconfig */;
 			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = Config/LiveTimer.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 66233X8P8H;
@@ -332,7 +333,6 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
-				CODE_SIGN_ENTITLEMENTS = Config/LiveTimer.entitlements;
 				INFOPLIST_FILE = Config/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = LiveTimer;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.lifestyle";

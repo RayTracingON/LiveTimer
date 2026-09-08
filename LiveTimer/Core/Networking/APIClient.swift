@@ -60,6 +60,15 @@ actor APIClient {
         return try await send(req)
     }
 
+    /// 没有响应体的写请求（204）。
+    func send<B: Encodable & Sendable>(_ url: URL, method: String, body: B,
+                                       headers: [String: String] = [:]) async throws {
+        var req = request(url: url, method: method, headers: headers)
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.httpBody = try encoder.encode(body)
+        _ = try await send(req)
+    }
+
     // MARK: - internals
 
     private func request(url: URL, method: String, headers: [String: String] = [:]) -> URLRequest {

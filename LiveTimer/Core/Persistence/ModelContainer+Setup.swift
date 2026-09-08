@@ -4,7 +4,7 @@ import SwiftData
 extension ModelContainer {
     static let schema = Schema([
         ScheduleItem.self, CachedLive.self, CachedVenue.self,
-        SubscribedIP.self, CachedPilgrimagePoint.self, WalletPassRecord.self,
+        SubscribedIP.self, CachedPilgrimagePoint.self, WalletPassRecord.self, SeatNote.self,
     ])
 
     /// 正式容器。所有用户数据只存本机，没有账号，换设备不迁移（v1 有意取舍）。
