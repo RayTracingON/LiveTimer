@@ -4,25 +4,34 @@ import GoogleMaps
 import GoogleMapsUtils
 
 /// 三类可聚合条目。各图层用独立的 GMUClusterManager，不跨图层聚合。
-final class VenueItem: NSObject, GMUClusterItem {
+/// 标 nonisolated：它们只持有普通值，而聚合渲染回调不保证在主 actor 上。
+nonisolated final class VenueItem: NSObject, GMUClusterItem {
     let venue: CachedVenue
     let position: CLLocationCoordinate2D
     init(_ venue: CachedVenue) { self.venue = venue; position = venue.coordinate }
 }
 
-final class HotelItem: NSObject, GMUClusterItem {
+nonisolated final class HotelItem: NSObject, GMUClusterItem {
     let place: HotelPlace
     let position: CLLocationCoordinate2D
     init(_ place: HotelPlace) { self.place = place; position = place.coordinate }
 }
 
-final class PointItem: NSObject, GMUClusterItem {
+nonisolated final class PointItem: NSObject, GMUClusterItem {
     let point: CachedPilgrimagePoint
     let position: CLLocationCoordinate2D
     init(_ point: CachedPilgrimagePoint) {
         self.point = point
         position = CLLocationCoordinate2D(latitude: point.latitude, longitude: point.longitude)
     }
+}
+
+/// 标注颜色。UIColor(SwiftUI.Color) 的初始化是 MainActor 隔离的，而聚合渲染回调不在主 actor 上，
+/// 所以这里用与 Theme 一致的字面值直接构造，避免跨 actor 调用。
+enum MarkerPalette {
+    static let live = UIColor(red: 1.0, green: 45 / 255, blue: 111 / 255, alpha: 1)          // Theme.C.kind(.live)
+    static let hotel = UIColor(red: 59 / 255, green: 158 / 255, blue: 1.0, alpha: 1)         // Theme.C.kind(.hotel)
+    static let pilgrimage = UIColor(red: 0, green: 229 / 255, blue: 195 / 255, alpha: 1)     // Theme.C.kind(.pilgrimage)
 }
 
 enum MapSelection: Equatable {
@@ -81,9 +90,9 @@ struct GoogleMapContainer: UIViewRepresentable {
 
         func attach(_ map: GMSMapView) {
             self.map = map
-            venueManager = makeManager(map, color: UIColor(Theme.C.kind(.live)))
-            hotelManager = makeManager(map, color: UIColor(Theme.C.kind(.hotel)))
-            pointManager = makeManager(map, color: UIColor(Theme.C.kind(.pilgrimage)))
+            venueManager = makeManager(map, color: MarkerPalette.live)
+            hotelManager = makeManager(map, color: MarkerPalette.hotel)
+            pointManager = makeManager(map, color: MarkerPalette.pilgrimage)
             sync()
         }
 
@@ -122,7 +131,7 @@ struct GoogleMapContainer: UIViewRepresentable {
                     let marker = GMSMarker(position: CLLocationCoordinate2D(latitude: ip.defaultLatitude, longitude: ip.defaultLongitude))
                     marker.title = ip.titleCn ?? ip.titleOriginal
                     marker.snippet = "\(ip.pointCount) 个地标"
-                    marker.icon = GMSMarker.markerImage(with: UIColor(Theme.C.kind(.pilgrimage)))
+                    marker.icon = GMSMarker.markerImage(with: MarkerPalette.pilgrimage)
                     marker.userData = ip.bangumiSubjectId
                     marker.map = map
                     workMarkers[ip.bangumiSubjectId] = marker
@@ -135,14 +144,14 @@ struct GoogleMapContainer: UIViewRepresentable {
         func renderer(_ renderer: GMUClusterRenderer, willRenderMarker marker: GMSMarker) {
             switch marker.userData {
             case let item as VenueItem:
-                marker.icon = GMSMarker.markerImage(with: UIColor(Theme.C.kind(.live)))
+                marker.icon = GMSMarker.markerImage(with: MarkerPalette.live)
                 marker.title = item.venue.name
                 marker.snippet = item.venue.nextLiveAt.map { Fmt.sectionDay.string(from: $0) }
             case let item as HotelItem:
-                marker.icon = GMSMarker.markerImage(with: UIColor(Theme.C.kind(.hotel)))
+                marker.icon = GMSMarker.markerImage(with: MarkerPalette.hotel)
                 marker.title = item.place.name
             case let item as PointItem:
-                marker.icon = GMSMarker.markerImage(with: UIColor(Theme.C.kind(.pilgrimage)))
+                marker.icon = GMSMarker.markerImage(with: MarkerPalette.pilgrimage)
                 marker.title = item.point.nameCn ?? item.point.name
             default:
                 break
@@ -190,7 +199,7 @@ struct GoogleMiniMap: UIViewRepresentable {
     let latitude: Double
     let longitude: Double
     let title: String?
-    var color: Color = Theme.C.kind(.live)
+    var color: UIColor = MarkerPalette.live
     var zoom: Float = 15
 
     func makeUIView(context: Context) -> GMSMapView {
@@ -202,7 +211,7 @@ struct GoogleMiniMap: UIViewRepresentable {
         map.isUserInteractionEnabled = false
         let marker = GMSMarker(position: CLLocationCoordinate2D(latitude: latitude, longitude: longitude))
         marker.title = title
-        marker.icon = GMSMarker.markerImage(with: UIColor(color))
+        marker.icon = GMSMarker.markerImage(with: color)
         marker.map = map
         return map
     }

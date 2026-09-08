@@ -228,11 +228,7 @@ struct LiveDetailView: View {
                     .buttonStyle(.plain)
                 }
             }
-            if config.walletPassEnabled {
-                // P2：Wallet 卡片。按钮先不放，避免出现一个点了没反应的入口。
-                Text("※ Wallet 行程提醒卡即将支持，不是入场券")
-                    .font(Theme.F.tag).foregroundStyle(Theme.C.textTertiary)
-            }
+            WalletPassSection(live: live)
         }
         .padding(.horizontal, Theme.M.screenPadding)
         .padding(.vertical, 12)

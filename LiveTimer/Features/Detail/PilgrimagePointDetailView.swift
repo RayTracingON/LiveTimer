@@ -33,7 +33,7 @@ struct PilgrimagePointDetailView: View {
                 if let ep = point.episodeText { Label(ep, systemImage: "film").font(Theme.F.body).foregroundStyle(Theme.C.textSecondary) }
 
                 GoogleMiniMap(latitude: point.latitude, longitude: point.longitude, title: point.nameCn ?? point.name,
-                              color: Theme.C.kind(.pilgrimage))
+                              color: MarkerPalette.pilgrimage)
                 .frame(height: 140)
                 .clipShape(RoundedRectangle(cornerRadius: Theme.M.cardRadius))
                 .allowsHitTesting(false)

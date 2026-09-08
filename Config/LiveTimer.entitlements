@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!--
+	  Wallet 能力。值必须带 team 前缀：$(TeamIdentifierPrefix) 会展开成「<TEAMID>.」（含结尾的点）。
+	  只写 pass.com.ascidean.livetimer 会匹配不上描述文件里嵌入的 <TEAMID>.pass.com.ascidean.livetimer，
+	  然后 PKPassLibrary.pass(withPassTypeIdentifier:serialNumber:) 会**静默**返回 nil——没有报错也没有日志。
+	  这个 Pass Type ID 还必须在开发者后台和 App ID 关联，否则签名时会被丢掉。
+	-->
+	<key>com.apple.developer.pass-type-identifiers</key>
+	<array>
+		<string>$(TeamIdentifierPrefix)pass.com.ascidean.livetimer</string>
+	</array>
+</dict>
+</plist>

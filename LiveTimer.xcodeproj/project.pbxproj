@@ -6,7 +6,15 @@
 	objectVersion = 90;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		0000000000000000000000C1 /* GoogleMaps in Frameworks */ = {isa = PBXBuildFile; productRef = 0000000000000000000000B1 /* GoogleMaps */; };
+		0000000000000000000000C2 /* GoogleMapsUtils in Frameworks */ = {isa = PBXBuildFile; productRef = 0000000000000000000000B2 /* GoogleMapsUtils */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
+		0000000000000000000000D1 /* Secrets.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Secrets.xcconfig; sourceTree = "<group>"; };
+		0000000000000000000000D2 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		0000000000000000000000D3 /* LiveTimer.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = LiveTimer.entitlements; sourceTree = "<group>"; };
 		000000000000000000000120 /* LiveTimer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = LiveTimer.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -17,16 +25,6 @@
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
-
-/* Begin PBXBuildFile section */
-		0000000000000000000000C1 /* GoogleMaps in Frameworks */ = {isa = PBXBuildFile; productRef = 0000000000000000000000B1 /* GoogleMaps */; };
-		0000000000000000000000C2 /* GoogleMapsUtils in Frameworks */ = {isa = PBXBuildFile; productRef = 0000000000000000000000B2 /* GoogleMapsUtils */; };
-/* End PBXBuildFile section */
-
-/* Begin PBXFileReference section */
-		0000000000000000000000D1 /* Secrets.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Secrets.xcconfig; sourceTree = "<group>"; };
-		0000000000000000000000D2 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-/* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		000000000000000130000000 /* Frameworks */ = {
@@ -61,6 +59,7 @@
 			children = (
 				0000000000000000000000D1 /* Secrets.xcconfig */,
 				0000000000000000000000D2 /* Info.plist */,
+				0000000000000000000000D3 /* LiveTimer.entitlements */,
 			);
 			path = Config;
 			sourceTree = "<group>";
@@ -288,6 +287,7 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
+				CODE_SIGN_ENTITLEMENTS = Config/LiveTimer.entitlements;
 				INFOPLIST_FILE = Config/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = LiveTimer;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.lifestyle";
@@ -332,6 +332,7 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
+				CODE_SIGN_ENTITLEMENTS = Config/LiveTimer.entitlements;
 				INFOPLIST_FILE = Config/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = LiveTimer;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.lifestyle";

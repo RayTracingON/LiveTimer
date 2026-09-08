@@ -9,6 +9,8 @@ struct LivesListView: View {
     @Binding var toast: ToastMessage?
 
     @State private var query = ""
+    /// 调试用：`-debugOpenFirstLive YES` 启动即进入第一场演出的详情页（模拟器没有点击命令）。
+    @State private var debugPath: [String] = []
 
     private var upcoming: [CachedLive] {
         let now = Date()
@@ -29,7 +31,7 @@ struct LivesListView: View {
     }
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $debugPath) {
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 18, pinnedViews: [.sectionHeaders]) {
                     if let error = sync.lastError, sync.isOffline {
@@ -67,6 +69,14 @@ struct LivesListView: View {
                 if let live = lives.first(where: { $0.id == id }) {
                     LiveDetailView(live: live, toast: $toast)
                 }
+            }
+            .task(id: upcoming.first?.id) {
+                #if DEBUG
+                if UserDefaults.standard.bool(forKey: "debugOpenFirstLive"), debugPath.isEmpty,
+                   let first = upcoming.first {
+                    debugPath = [first.id]
+                }
+                #endif
             }
         }
     }
