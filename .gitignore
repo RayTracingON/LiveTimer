@@ -1,0 +1,28 @@
+### macOS ###
+.DS_Store
+
+### Xcode ###
+xcuserdata/
+*.xcuserstate
+build/
+DerivedData/
+*.moved-aside
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+### Swift Package Manager ###
+.swiftpm/
+.build/
+
+### 密钥 ###
+# Google Maps 的 iOS Key（见 Config/Secrets.example.xcconfig）
+Config/Secrets.xcconfig
+# 证书兜底：任何情况下都不进仓库
+*.p12
+*.p8
+*.key
+*.cer
+*.pem
+*.mobileprovision
