@@ -43,7 +43,14 @@ struct VenueCard: View {
     var body: some View {
         MapCard(onClose: onClose) {
             VStack(alignment: .leading, spacing: 3) {
-                Text(venue.name).font(Theme.F.cardTitle).foregroundStyle(Theme.C.textPrimary).padding(.trailing, 28)
+                HStack(spacing: 6) {
+                    Text(venue.name).font(Theme.F.cardTitle).foregroundStyle(Theme.C.textPrimary).lineLimit(2)
+                    if venue.upcomingLiveCount == 0 {
+                        TagLabel(text: "近期无公演", color: Theme.C.textTertiary)
+                    }
+                }
+                .padding(.trailing, 28)
+                Text(venue.address).font(Theme.F.caption).foregroundStyle(Theme.C.textSecondary).lineLimit(1)
                 if let station = venue.nearestStation {
                     Label(station, systemImage: "tram.fill").font(Theme.F.caption).foregroundStyle(Theme.C.accentAlt)
                 }
@@ -51,7 +58,9 @@ struct VenueCard: View {
             if loading && lives.isEmpty {
                 ProgressView().frame(maxWidth: .infinity)
             } else if lives.isEmpty {
-                Text("这段时间没有场次").font(Theme.F.caption).foregroundStyle(Theme.C.textTertiary)
+                // 场馆清单是完整的，但演出数据要等运营录入，这里说清楚免得像是坏了
+                Text("这个场馆目前还没有登记的公演。有新场次上线后会显示在这里。")
+                    .font(Theme.F.caption).foregroundStyle(Theme.C.textTertiary)
             } else {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 10) {

@@ -92,9 +92,15 @@ struct MapScreen: View {
 
     // MARK: - overlays
 
+    /// 「12 场馆 · 3 有公演」。只有场馆没有公演时不重复写 0。
+    private var venueSummary: String {
+        let withLives = visibleVenues.filter { $0.upcomingLiveCount > 0 }.count
+        return withLives > 0 ? "\(visibleVenues.count) 场馆·\(withLives) 有公演" : "\(visibleVenues.count) 场馆"
+    }
+
     private var summaryPill: some View {
         let parts: [String] = [
-            tooZoomedOut ? "放大查看场馆" : (showVenues ? "\(visibleVenues.count) 场馆" : nil),
+            tooZoomedOut ? "放大查看场馆" : (showVenues ? venueSummary : nil),
             hotelsEnabled && showHotels ? "\(hotelSearch.places.count) 酒店" : nil,
             pilgrimageEnabled && showPilgrimage ? (region.span.latitudeDelta < pointZoomThreshold ? "\(visiblePoints.count) 地标" : (subscribedIPs.isEmpty ? nil : "\(subscribedIPs.count) 作品")) : nil,
         ].compactMap { $0 }
@@ -173,7 +179,9 @@ struct MapScreen: View {
         let from = selectedDate
         let to = Calendar.jst.date(byAdding: .day, value: 30, to: from) ?? from
         do {
-            let page = try await api.venues(bbox: bbox, hasUpcomingLives: true, from: from, to: to, limit: 200)
+            // 拉全部场馆：只显示「有场次」的话，刚导入的场馆在地图上完全看不到。
+            // 没有公演的用灰色图钉区分，见 LiveMapContainer 的 willRenderMarker。
+            let page = try await api.venues(bbox: bbox, hasUpcomingLives: false, from: from, to: to, limit: 200)
             for dto in page.items { sync.upsert(dto, context: context) }
             try? context.save()
             let ids = Set(page.items.map(\.id))

@@ -127,7 +127,10 @@ actor AnitabiAPI {
 
 /// anitabi 是第三方开放数据，字段类型并不稳定（同一个 ep 有时是 3、有时是 "OP"）。
 /// 这里统一用宽松读法：能转成目标类型就用，转不了就当没填，绝不因为一个字段炸掉整次请求。
-private extension KeyedDecodingContainer {
+/// 解码辅助。必须标 nonisolated：工程默认把成员推断成 MainActor 隔离，
+/// 而 `init(from:)` 是非隔离的，调用时会报跨 actor 警告（Swift 6 严格并发下是错误）。
+/// 这些方法只做纯粹的类型转换，不碰任何共享状态。
+private nonisolated extension KeyedDecodingContainer {
     func lenientString(_ key: Key) -> String? {
         if let v = try? decodeIfPresent(String.self, forKey: key) { return v.isEmpty ? nil : v }
         if let v = try? decodeIfPresent(Int.self, forKey: key) { return String(v) }
@@ -157,7 +160,7 @@ private extension KeyedDecodingContainer {
     }
 }
 
-private struct LenientDouble: Decodable {
+private nonisolated struct LenientDouble: Decodable {
     let value: Double?
     init(from decoder: any Decoder) throws {
         let c = try decoder.singleValueContainer()
@@ -167,7 +170,7 @@ private struct LenientDouble: Decodable {
     }
 }
 
-private extension Double {
+private nonisolated extension Double {
     /// 只有有限且不溢出的浮点才转 Int，否则 Int(_:) 会直接崩。
     var asInt: Int? { isFinite && magnitude < 1e15 ? Int(self) : nil }
 }

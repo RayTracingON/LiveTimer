@@ -6,9 +6,24 @@ import GoogleMapsUtils
 /// 三类可聚合条目。各图层用独立的 GMUClusterManager，不跨图层聚合。
 /// 标 nonisolated：它们只持有普通值，而聚合渲染回调不保证在主 actor 上。
 nonisolated final class VenueItem: NSObject, GMUClusterItem {
-    let venue: CachedVenue
+    let id: String
+    let name: String
+    let upcomingLiveCount: Int
+    let nextLiveText: String?
     let position: CLLocationCoordinate2D
-    init(_ venue: CachedVenue) { self.venue = venue; position = venue.coordinate }
+
+    /// 只取出需要的普通值，不持有 SwiftData 模型——模型绑定在自己的上下文上，
+    /// 而聚合渲染回调不保证在主 actor 上执行。
+    @MainActor
+    init(_ venue: CachedVenue) {
+        id = venue.id
+        name = venue.name
+        upcomingLiveCount = venue.upcomingLiveCount
+        nextLiveText = venue.nextLiveAt.map { Fmt.sectionDay.string(from: $0) }
+        position = venue.coordinate
+    }
+
+    var hasUpcomingLives: Bool { upcomingLiveCount > 0 }
 }
 
 nonisolated final class HotelItem: NSObject, GMUClusterItem {
@@ -18,10 +33,14 @@ nonisolated final class HotelItem: NSObject, GMUClusterItem {
 }
 
 nonisolated final class PointItem: NSObject, GMUClusterItem {
-    let point: CachedPilgrimagePoint
+    let id: String
+    let name: String
     let position: CLLocationCoordinate2D
+
+    @MainActor
     init(_ point: CachedPilgrimagePoint) {
-        self.point = point
+        id = point.id
+        name = point.nameCn ?? point.name
         position = CLLocationCoordinate2D(latitude: point.latitude, longitude: point.longitude)
     }
 }
@@ -30,6 +49,8 @@ nonisolated final class PointItem: NSObject, GMUClusterItem {
 /// 所以这里用与 Theme 一致的字面值直接构造，避免跨 actor 调用。
 enum MarkerPalette {
     static let live = UIColor(red: 1.0, green: 45 / 255, blue: 111 / 255, alpha: 1)          // Theme.C.kind(.live)
+    /// 场馆存在但近期没有公演。灰调，避免和「有演出」抢注意力。
+    static let venueIdle = UIColor(red: 122 / 255, green: 122 / 255, blue: 138 / 255, alpha: 1)
     static let hotel = UIColor(red: 59 / 255, green: 158 / 255, blue: 1.0, alpha: 1)         // Theme.C.kind(.hotel)
     static let pilgrimage = UIColor(red: 0, green: 229 / 255, blue: 195 / 255, alpha: 1)     // Theme.C.kind(.pilgrimage)
 }
@@ -144,15 +165,25 @@ struct GoogleMapContainer: UIViewRepresentable {
         func renderer(_ renderer: GMUClusterRenderer, willRenderMarker marker: GMSMarker) {
             switch marker.userData {
             case let item as VenueItem:
-                marker.icon = GMSMarker.markerImage(with: MarkerPalette.live)
-                marker.title = item.venue.name
-                marker.snippet = item.venue.nextLiveAt.map { Fmt.sectionDay.string(from: $0) }
+                marker.icon = GMSMarker.markerImage(with: item.hasUpcomingLives
+                                                    ? MarkerPalette.live : MarkerPalette.venueIdle)
+                marker.title = item.name
+                marker.snippet = item.hasUpcomingLives ? item.nextLiveText : "近期无公演"
             case let item as HotelItem:
                 marker.icon = GMSMarker.markerImage(with: MarkerPalette.hotel)
                 marker.title = item.place.name
             case let item as PointItem:
                 marker.icon = GMSMarker.markerImage(with: MarkerPalette.pilgrimage)
-                marker.title = item.point.nameCn ?? item.point.name
+                marker.title = item.name
+            case let cluster as GMUCluster:
+                // 整簇都没有公演时也用灰色，否则一片粉色会让人以为到处都有演出
+                let venues = cluster.items.compactMap { $0 as? VenueItem }
+                if !venues.isEmpty, venues.allSatisfy({ !$0.hasUpcomingLives }) {
+                    marker.icon = GMUDefaultClusterIconGenerator(
+                        buckets: [5, 10, 50, 200],
+                        backgroundColors: Array(repeating: MarkerPalette.venueIdle, count: 4))
+                        .icon(forSize: UInt(cluster.count))
+                }
             default:
                 break
             }
@@ -167,9 +198,9 @@ struct GoogleMapContainer: UIViewRepresentable {
 
         func mapView(_ mapView: GMSMapView, didTap marker: GMSMarker) -> Bool {
             switch marker.userData {
-            case let item as VenueItem: parent.onSelect(.venue(item.venue.id))
+            case let item as VenueItem: parent.onSelect(.venue(item.id))
             case let item as HotelItem: parent.onSelect(.hotel(item.place.id))
-            case let item as PointItem: parent.onSelect(.point(item.point.id))
+            case let item as PointItem: parent.onSelect(.point(item.id))
             case let subject as Int:
                 parent.onSelect(.work(subject))
                 mapView.animate(to: GMSCameraPosition(target: marker.position, zoom: max(mapView.camera.zoom, 12.5)))
