@@ -155,15 +155,23 @@ nonisolated struct LiveTimerAPI: Sendable {
         return try await client.get(url("/api/v1/venues/\(venueId)/lives", q))
     }
 
-    /// 图层 B：后端代理的 Google Places。
-    func hotels(bbox: Bbox, keyword: String? = nil, limit: Int = 20) async throws -> HotelPage {
+    /// 图层 B：后端代理的 Google Places，只返回四大集团的酒店。
+    /// - Parameter groups: 逗号分隔的集团 id；为空表示全部。
+    func hotels(bbox: Bbox, groups: String? = nil, limit: Int = 10) async throws -> HotelPage {
         var q: [URLQueryItem] = [.init(name: "bbox", value: bbox.queryValue), .init(name: "limit", value: String(limit))]
-        if let keyword, !keyword.isEmpty { q.append(.init(name: "keyword", value: keyword)) }
+        if let groups, !groups.isEmpty { q.append(.init(name: "groups", value: groups)) }
         return try await client.get(url("/api/v1/hotels", q))
     }
 
     func ipCatalog() async throws -> [IpCatalogEntry] {
         try await client.get(url("/api/v1/ip-catalog"))
+    }
+
+    /// 搜索有巡礼数据的作品，不限于运营策展的清单。
+    /// 走后端而不是直连 anitabi：User-Agent 规范和限流集中控制，缓存也能跨用户共享。
+    func searchIpCatalog(_ keyword: String, limit: Int = 15) async throws -> [IpCatalogEntry] {
+        try await client.get(url("/api/v1/ip-catalog/search",
+                                 [.init(name: "q", value: keyword), .init(name: "limit", value: String(limit))]))
     }
 
     func passData(liveId: String) async throws -> Data {

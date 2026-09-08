@@ -111,7 +111,7 @@ struct HotelCard: View {
     var body: some View {
         MapCard(onClose: onClose) {
             HStack(spacing: 8) {
-                TagLabel(text: "酒店", color: Theme.C.kind(.hotel), filled: true)
+                TagLabel(text: place.brandLabel ?? "酒店", color: Theme.C.kind(.hotel), filled: true)
                 Text(place.name).font(Theme.F.cardTitle).foregroundStyle(Theme.C.textPrimary).lineLimit(1).padding(.trailing, 28)
             }
             if let address = place.address {
